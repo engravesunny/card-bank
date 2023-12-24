@@ -6,10 +6,7 @@
             <Title>{{ '账户余额： ' + restInfo.rest }}</Title>
         </div>
         <div class="content-item">
-            <Title>{{ '可用余额： ' + restInfo.restEnable }}</Title>
-        </div>
-        <div class="content-item">
-            <Title>{{ '当日可用余额： ' + restInfo.restEnableToday }}</Title>
+            <Title>{{ '每日限额 ' + restInfo.restEnableToday }}</Title>
         </div>
     </div>
 </template>

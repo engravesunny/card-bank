@@ -1,8 +1,14 @@
 import { ref, shallowRef, watch } from 'vue';
 import { configs } from '../config'
 export const resultContent = ref('')
-export const curConfig = shallowRef(configs.initState)
+export const curConfig = shallowRef<{
+    main: any,
+    left: any,
+    right: any,
+    againPage?: boolean
+}>(configs.initState)
 import * as store from '../../../store'
+import { changePassword, checkMoney, getMoney, setMoney, transferMoney } from '../../../service/api';
 export const formData = ref({
     money: '',
     account: ''
@@ -15,7 +21,6 @@ watch(curConfig, (val, oldVal) => {
     } else if (oldVal !== configs.resultState && oldVal !== configs.transferMoneySuccessState && oldVal !== configs.thanksState) {
         preConfig.value.push(oldVal)
     }
-    console.log([...preConfig.value])
 }, {
     immediate: true,
     deep: true
@@ -23,7 +28,6 @@ watch(curConfig, (val, oldVal) => {
 
 // service 主页面
 export const handleService = (type: string) => {
-    console.log(type)
     if (type === '取款') {
         curConfig.value = configs.getMoneyState
     }
@@ -39,7 +43,7 @@ export const handleService = (type: string) => {
 }
 
 // options
-export const handleClick = (type: string) => {
+export const handleClick = async (type: string) => {
     if (type === '返回') {
         curConfig.value = preConfig.value.pop()
         if ((curConfig.value as any).againPage) {
@@ -91,10 +95,25 @@ export const handleClick = (type: string) => {
             resultContent.value = `<h1>请输入金额</h1>`
             return
         }
-        resultContent.value = `
-            <h1>交易成功，请选择操作</h1>
-        `
-        curConfig.value = configs.transferMoneySuccessState
+        try {
+            await transferMoney({
+                amount: Number(store.TransferData.value.money),
+                to_account_number: store.TransferData.value.confirmAccount
+            })
+            resultContent.value = `
+                <h1>交易成功，请选择操作</h1>
+            `
+            curConfig.value = configs.transferMoneySuccessState
+        } catch (error: any) {
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                ${error.message}
+            `
+        } finally {
+            store.TransferData.value.account = ''
+            store.TransferData.value.confirmAccount = ''
+            store.TransferData.value.money = ''
+        }
     }
     if (type === '改密再次输入密码确认') {
         if (store.passwordData.value.confirmPassword === '') {
@@ -109,10 +128,24 @@ export const handleClick = (type: string) => {
             store.passwordData.value.password = ''
             return
         }
-        curConfig.value = configs.changePasswordSuccessState
-        resultContent.value = `
-            个人密码修改成功
-        `
+        try {
+            await changePassword({
+                new_password: store.passwordData.value.password
+            })
+            curConfig.value = configs.changePasswordSuccessState
+            resultContent.value = `
+                个人密码修改成功
+            `
+        } catch (error: any) {
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                ${error.message}
+            `
+        } finally {
+            store.passwordData.value.confirmPassword = ''
+            store.passwordData.value.password = ''
+        }
+
     }
     if (type === '改密输入密码确认') {
         if (store.passwordData.value.password === '') {
@@ -127,73 +160,141 @@ export const handleClick = (type: string) => {
         resultContent.value = '凭证条已打印好，请收好您的凭证'
     }
     if (type === '退出') {
-        location.pathname = '/home'
+        store.token.value = ''
+        location.reload()
     }
 }
 
 // 取款
-export const handleGetMoney = (money: string | number) => {
+export const handleGetMoney = async (money: string | number) => {
     if (money === '确认取款') {
         if (formData.value.money === '') {
             curConfig.value = configs.resultState
             resultContent.value = `<h1>请输入金额</h1>`
             return
         }
-        curConfig.value = configs.transferMoneySuccessState
-        resultContent.value = `
-            <h1>成功取款 ${formData.value.money}元<h1/>
-            <h1>余额: ${''}<h1/>
-        `
+        try {
+            const res = await getMoney({
+                amount: Number(formData.value.money)
+            })
+            store.restInfo.value.rest = res.balance
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                <h1>成功取款 ${formData.value.money}元<h1/>
+                <h1>余额: ${res.balance}<h1/>
+            `
+        } catch (error: any) {
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                ${error.message}
+            `
+        } finally {
+            formData.value.money = ''
+        }
     } else {
-        curConfig.value = configs.transferMoneySuccessState
-        resultContent.value = `
-            <h1>成功取款 ${money}元<h1/>
-            <h1>余额: ${''}<h1/>
-        `
+        formData.value.money = money.toString()
+        try {
+            const res = await getMoney({
+                amount: Number(formData.value.money)
+            })
+            store.restInfo.value.rest = res.balance
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                <h1>成功取款 ${formData.value.money}元<h1/>
+                <h1>余额: ${res.balance}<h1/>
+            `
+        } catch (error: any) {
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                ${error.message}
+            `
+        } finally {
+            formData.value.money = ''
+        }
     }
 }
 
 // 存款
-export const handleSetMoney = (money: string | number) => {
-    console.log(money)
+export const handleSetMoney = async (money: string | number) => {
     if (money === '确认存款') {
         if (formData.value.money === '') {
             curConfig.value = configs.resultState
             resultContent.value = `<h1>请输入金额</h1>`
             return
         }
-        curConfig.value = configs.transferMoneySuccessState
-        resultContent.value = `
-            <h1>成功存款 ${formData.value.money}元<h1/>
-            <h1>余额: ${''}<h1/>
-        `
+        try {
+            const res = await setMoney({
+                amount: Number(formData.value.money)
+            })
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                <h1>成功存款 ${formData.value.money}元<h1/>
+                <h1>余额: ${res.balance}<h1/>
+            `
+        } catch (error: any) {
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                ${error.message}
+            `
+        } finally {
+            formData.value.money = ''
+        }
     } else {
-        curConfig.value = configs.transferMoneySuccessState
-        resultContent.value = `
-            <h1>成功存款 ${money}元<h1/>
-            <h1>余额: ${''}<h1/>
-        `
+        formData.value.money = money.toString()
+        try {
+            const res = await setMoney({
+                amount: Number(formData.value.money)
+            })
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                <h1>成功存款 ${formData.value.money}元<h1/>
+                <h1>余额: ${res.balance}<h1/>
+            `
+        } catch (error: any) {
+            curConfig.value = configs.transferMoneySuccessState
+            resultContent.value = `
+                ${error.message}
+            `
+        } finally {
+            formData.value.money = ''
+        }
     }
 }
 
 // 查询
-export const handleCheckMoney = (type: string) => {
+export const handleCheckMoney = async (type: string) => {
     if (type === '返回') {
         curConfig.value = configs.checkMoneyState
+        preConfig.value = [
+            configs.initState
+        ]
+        return
     }
     if (type === '余额查询') {
         curConfig.value = configs.checkMoneyRest
+        console.log(curConfig, preConfig)
+        curConfig.value.againPage = true
     }
     if (type === '交易明细查询') {
+        await handleCheckMoneyDetail(0)
         curConfig.value = configs.checkMoneyDetail
+        curConfig.value.againPage = true
     }
 }
-// 查询加以明细
-export const handleCheckMoneyDetail = (type: string) => {
-    console.log(type)
+
+// 查询页返回
+export const handleCheckMoneyReturn = () => {
+    curConfig.value = configs.initState
 }
 
-// 转账
-export const handleTransferMoney = () => {
-
+// 查询加以明细
+export const handleCheckMoneyDetail = async (nextPage: number) => {
+    store.page.value.page_num += Number(nextPage)
+    const data = await checkMoney({
+        page_num: store.page.value.page_num,
+        page_size: store.page.value.page_size
+    })
+    store.checkDetailTableData.value = data.transactions
+    store.page.value.total = data.total
+    store.page.value.totalPage = Math.ceil(data.total / 3);
 }

@@ -10,7 +10,8 @@
             </template>
         </Container>
         <div class="siderBar">
-            <Button v-for="item in curConfig.left" :title="'<- ' + item.label" :callback="item.cb"></Button>
+            <Button v-for="item in curConfig.left.value || curConfig.left" :title="'<- ' + item.label"
+                :callback="item.cb"></Button>
         </div>
         <div class="buttons">
             <Button v-for="item in curConfig.right" :title="item.label + ' ->'" :callback="item.cb"></Button>

@@ -18,8 +18,22 @@ import {
     handleGetMoney,
     handleSetMoney,
     handleCheckMoney,
-    handleCheckMoneyDetail
+    handleCheckMoneyDetail,
+    handleCheckMoneyReturn
 } from "./Hook/init"
+import * as store from "../../store"
+import { computed } from "vue"
+
+const getPage = computed(() => {
+    if (store.page.value.page_num <= 1) {
+        return [{ label: '下一页', cb: () => handleCheckMoneyDetail(1) }]
+    } else if (store.page.value.page_num >= 1 && store.page.value.page_num <= store.page.value.total / store.page.value.page_size) {
+        return [{ label: '上一页', cb: () => handleCheckMoneyDetail(-1) }, { label: '下一页', cb: () => handleCheckMoneyDetail(1) }]
+    } else {
+        return [{ label: '上一页', cb: () => handleCheckMoneyDetail(-1) }]
+    }
+})
+
 export const configs = {
     // 最初状态
     initState: {
@@ -164,7 +178,7 @@ export const configs = {
             },
             {
                 label: '返回',
-                cb: () => handleClick('返回')
+                cb: () => handleCheckMoneyReturn('返回')
             },
             {
                 label: '退卡',
@@ -179,7 +193,7 @@ export const configs = {
         right: [
             {
                 label: '返回',
-                cb: () => handleCheckMoney('返回')
+                cb: () => handleClick('返回')
             },
             {
                 label: '退卡',
@@ -190,16 +204,7 @@ export const configs = {
     // 查询交易明细页
     checkMoneyDetail: {
         main: checkMoneyDetail,
-        left: [
-            {
-                label: '上一页',
-                cb: () => handleCheckMoneyDetail('上一页')
-            },
-            {
-                label: '下一页',
-                cb: () => handleCheckMoneyDetail('下一页')
-            }
-        ],
+        left: getPage,
         right: [
             {
                 label: '返回',

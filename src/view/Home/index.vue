@@ -34,6 +34,8 @@ import { ElForm, ElFormItem, ElInput } from 'element-plus'
 import { ref } from 'vue';
 import Button from '../../components/Button.vue';
 import { useRouter } from 'vue-router';
+import { info, login } from '../../service/api';
+import { userId, token, accountNumber, restInfo } from '../../store'
 const router = useRouter()
 
 const formData = ref({
@@ -42,13 +44,31 @@ const formData = ref({
 })
 const state = ref('请登录')
 
-const onSubmit = () => {
+const onSubmit = async () => {
     if (formData.value.card === '') {
         state.value = '请输入卡号！！'
     } else if (formData.value.password === '') {
         state.value = '请输入密码！！'
     } else {
-        router.push('/service')
+        try {
+            let res = await login({
+                account_number: formData.value.card,
+                password: formData.value.password
+            })
+            token.value = res.token
+            userId.value = res.user_id
+            accountNumber.value = res.account_number
+
+            // 获取用户信息
+            const ress = await info({
+                user_id: userId.value
+            })
+            restInfo.value.rest = ress.user.balance
+            restInfo.value.restEnableToday = ress.user.daily_limit
+            router.push('/service')
+        } catch (error: any) {
+            state.value = error.message
+        }
     }
 }
 
