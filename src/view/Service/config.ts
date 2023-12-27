@@ -27,7 +27,7 @@ import { computed } from "vue"
 const getPage = computed(() => {
     if (store.page.value.page_num <= 1) {
         return [{ label: '下一页', cb: () => handleCheckMoneyDetail(1) }]
-    } else if (store.page.value.page_num >= 1 && store.page.value.page_num <= store.page.value.total / store.page.value.page_size) {
+    } else if (store.page.value.page_num >= 1 && store.page.value.page_num < store.page.value.total / store.page.value.page_size) {
         return [{ label: '上一页', cb: () => handleCheckMoneyDetail(-1) }, { label: '下一页', cb: () => handleCheckMoneyDetail(1) }]
     } else {
         return [{ label: '上一页', cb: () => handleCheckMoneyDetail(-1) }]
@@ -178,7 +178,7 @@ export const configs = {
             },
             {
                 label: '返回',
-                cb: () => handleCheckMoneyReturn('返回')
+                cb: () => handleCheckMoneyReturn()
             },
             {
                 label: '退卡',

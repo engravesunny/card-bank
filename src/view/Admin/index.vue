@@ -113,6 +113,9 @@ const handleLogin = () => {
     if (formData.value.id === 'admin' && formData.value.pwd === 'admin') {
         islogin.value = 'true'
         localStorage.setItem('LOGIN', 'true')
+        ElMessage.success('登陆成功')
+    } else {
+        ElMessage.error('信息输入有误，登陆失败')
     }
 }
 

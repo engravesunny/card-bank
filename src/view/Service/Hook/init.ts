@@ -272,7 +272,6 @@ export const handleCheckMoney = async (type: string) => {
     }
     if (type === '余额查询') {
         curConfig.value = configs.checkMoneyRest
-        console.log(curConfig, preConfig)
         curConfig.value.againPage = true
     }
     if (type === '交易明细查询') {
